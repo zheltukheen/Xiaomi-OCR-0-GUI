@@ -20,7 +20,10 @@ pyinstaller run.py ^
   --name "%NAME%" ^
   --onefile --windowed ^
   --icon icons\icon.ico ^
-  --collect-all pymupdf ^
+  --exclude-module onnxruntime ^
+  --exclude-module pymupdf_layout ^
+  --exclude-module pymupdf4llm ^
+  --exclude-module torch.utils.tensorboard ^
   --collect-all odfpy ^
   --collect-all ebooklib ^
   --collect-all striprtf

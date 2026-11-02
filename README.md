@@ -60,9 +60,9 @@ python run.py
 | macOS | `XiaomiOCR-macos.zip` → **XiaomiOCR.app** | application bundle with an icon; unsigned — right-click → **Open** on the first launch |
 | Linux | **XiaomiOCR-linux.AppImage** | runnable bundle; make it executable and run (`chmod +x`) |
 
-Note: the Linux bundle ships the CPU build of PyTorch (fits the 2 GB release
-asset limit); on Windows the standard wheel is used, so NVIDIA GPUs accelerate
-recognition there. Apple silicon uses MPS automatically.
+Note: Linux and Windows bundles ship the CPU build of PyTorch (keeps them well
+under the 2 GB release-asset limit and much smaller); Apple silicon uses MPS
+automatically. Running `run.py` from source keeps GPU (CUDA) support on Windows.
 
 ## Project structure
 

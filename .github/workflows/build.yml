@@ -32,11 +32,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
 
-      # Linux default wheels bundle CUDA (nvidia-* + triton) and exceed the 2 GB
-      # release-asset limit. Replace with the CPU build. An uninstall is required,
-      # otherwise pip sees torch==2.14.0 "already satisfied" and keeps the CUDA one.
-      - name: Install CPU-only torch (Linux)
-        if: runner.os == 'Linux'
+      # Default torch wheels bundle CUDA (nvidia-* + triton, ~2 GB unpacked) which
+      # can push release assets past the 2 GB limit and bloats bundles. Replace
+      # with the CPU build on Linux and Windows. A plain `pip install torch==2.14.0`
+      # is NOT enough: pip sees the same version "already satisfied" and keeps the
+      # CUDA wheel, so the CUDA torch is uninstalled first.
+      - name: Install CPU-only torch (Linux / Windows)
+        if: runner.os != 'macOS'
         run: |
           pip uninstall -y torch torchvision || true
           NV="$(pip list --format freeze | grep -iE '^(nvidia|triton)[-_.]' | cut -d= -f1)"
@@ -56,20 +58,26 @@ jobs:
         shell: cmd
         run: >
           pyinstaller run.py --name XiaomiOCR --onefile --windowed --icon icons\icon.ico
-          --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
+          --exclude-module onnxruntime --exclude-module pymupdf_layout --exclude-module pymupdf4llm
+          --exclude-module torch.utils.tensorboard
+          --collect-all odfpy --collect-all ebooklib --collect-all striprtf
 
       # macOS: a proper XiaomiOCR.app application bundle with an icon
       - name: Build (macOS)
         if: runner.os == 'macOS'
         run: >
           pyinstaller run.py --name XiaomiOCR --onedir --windowed --icon icons/icon.icns
-          --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
+          --exclude-module onnxruntime --exclude-module pymupdf_layout --exclude-module pymupdf4llm
+          --exclude-module torch.utils.tensorboard
+          --collect-all odfpy --collect-all ebooklib --collect-all striprtf
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
         run: >
           pyinstaller run.py --name XiaomiOCR --onedir --windowed
-          --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
+          --exclude-module onnxruntime --exclude-module pymupdf_layout --exclude-module pymupdf4llm
+          --exclude-module torch.utils.tensorboard
+          --collect-all odfpy --collect-all ebooklib --collect-all striprtf
 
       - name: Package (Windows)
         if: runner.os == 'Windows'

@@ -24,7 +24,7 @@ NAME="XiaomiOCR"
 rm -rf build dist/${NAME}*
 python scripts/gen_icon.py
 
-COMMON="--collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf"
+COMMON="--exclude-module onnxruntime --exclude-module pymupdf_layout --exclude-module pymupdf4llm --exclude-module torch.utils.tensorboard --collect-all odfpy --collect-all ebooklib --collect-all striprtf"
 
 if [ "$(uname -s)" = "Darwin" ]; then
   iconutil -c icns icons/icon.iconset -o icons/icon.icns
