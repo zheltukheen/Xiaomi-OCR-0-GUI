@@ -11,8 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: build (${{
-      matrix.os == 'ubuntu-latest' && 'linux' ||
+    name: build (${{ matrix.os == 'ubuntu-latest' && 'linux' ||
       matrix.os == 'macos-latest' && 'macos' || 'windows' }})
     strategy:
       fail-fast: false
@@ -44,50 +43,84 @@ jobs:
           if [ -n "$NV" ]; then pip uninstall -y $NV; fi
           pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
 
+      - name: Generate app icons
+        run: python scripts/gen_icon.py
+
+      - name: Make macOS .icns
+        if: runner.os == 'macOS'
+        run: iconutil -c icns icons/icon.iconset -o icons/icon.icns
+
+      # Windows: a single-file double-clickable XiaomiOCR.exe
       - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: cmd
-        run: |
-          pyinstaller run.py --name XiaomiOCR --windowed --onedir ^
-            --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
+        run: >
+          pyinstaller run.py --name XiaomiOCR --onefile --windowed --icon icons\icon.ico
+          --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
 
-      - name: Build (macOS / Linux)
-        if: runner.os != 'Windows'
-        run: |
-          pyinstaller run.py --name XiaomiOCR --windowed --onedir \
-            --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
+      # macOS: a proper XiaomiOCR.app application bundle with an icon
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: >
+          pyinstaller run.py --name XiaomiOCR --onedir --windowed --icon icons/icon.icns
+          --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: >
+          pyinstaller run.py --name XiaomiOCR --onedir --windowed
+          --collect-all pymupdf --collect-all odfpy --collect-all ebooklib --collect-all striprtf
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path dist/XiaomiOCR -DestinationPath dist/XiaomiOCR-windows.zip -Force
+        run: Compress-Archive -Path dist/XiaomiOCR.exe -DestinationPath dist/XiaomiOCR-windows.zip -Force
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
           cd dist
-          zip -q -r XiaomiOCR-macos.zip XiaomiOCR
-          cd ..
+          zip -q -r XiaomiOCR-macos.zip XiaomiOCR.app
 
-      - name: Package (Linux)
+      # Linux: a runnable AppImage bundle (single file, mounts on any modern distro)
+      - name: Package (Linux -> AppImage)
         if: runner.os == 'Linux'
         run: |
-          cd dist
-          zip -q -r XiaomiOCR-linux.zip XiaomiOCR
-          cd ..
+          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
+          cp -r dist/XiaomiOCR AppDir/usr/bin/
+          chmod +x AppDir/usr/bin/XiaomiOCR/XiaomiOCR
+          cp icons/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/xocr.png
+          cp icons/icon.png AppDir/.DirIcon
+          cp icons/icon.png AppDir/xocr.png
+          cat > AppDir/xocr.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=Xiaomi OCR
+          Comment=Offline OCR powered by Xiaomi-OCR-0
+          Exec=XiaomiOCR
+          Icon=xocr
+          Categories=Office;Utility;
+          Terminal=false
+          EOF
+          curl -L -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          ./appimagetool --appimage-extract-and-run AppDir dist/XiaomiOCR-linux.AppImage
 
-      - name: Attach to release
+      - name: Attach bundles to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/XiaomiOCR-windows.zip
             dist/XiaomiOCR-macos.zip
-            dist/XiaomiOCR-linux.zip
+            dist/XiaomiOCR-linux.AppImage
 
       - name: Upload artifact (manual runs)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: XiaomiOCR-${{ runner.os }}
-          path: dist/XiaomiOCR-*.zip
+          path: |
+            dist/XiaomiOCR-windows.zip
+            dist/XiaomiOCR-macos.zip
+            dist/XiaomiOCR-linux.AppImage

@@ -5,3 +5,6 @@ __pycache__/
 build/
 dist/
 *.spec
+
+icons/
+.release_notes_*.md

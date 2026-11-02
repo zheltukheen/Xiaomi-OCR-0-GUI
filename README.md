@@ -51,8 +51,18 @@ python run.py
 ## Building a release
 
 - Local build for the current platform: `scripts/build_release.sh` (or `.bat`).
-- Cross-platform builds are automated by GitHub Actions: pushing a tag
-  `v*` builds **Windows, macOS and Linux** bundles and attaches them to a GitHub release.
+- Cross-platform builds are automated by GitHub Actions: pushing a tag `v*`
+  builds and attaches ready-made bundles on a GitHub release:
+
+| Platform | Bundle | Notes |
+|---|---|---|
+| Windows | `XiaomiOCR-windows.zip` → **XiaomiOCR.exe** | single-file bundle; the first start unpacks and may take a few extra seconds |
+| macOS | `XiaomiOCR-macos.zip` → **XiaomiOCR.app** | application bundle with an icon; unsigned — right-click → **Open** on the first launch |
+| Linux | **XiaomiOCR-linux.AppImage** | runnable bundle; make it executable and run (`chmod +x`) |
+
+Note: the Linux bundle ships the CPU build of PyTorch (fits the 2 GB release
+asset limit); on Windows the standard wheel is used, so NVIDIA GPUs accelerate
+recognition there. Apple silicon uses MPS automatically.
 
 ## Project structure
 
