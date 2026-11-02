@@ -33,12 +33,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
 
-      # Linux default wheels bundle CUDA and exceed the 2 GB release asset limit.
-      # Use the CPU build on Linux; on Apple MPS / NVIDIA the pip default is better
-      # for local installs (see README).
+      # Linux default wheels bundle CUDA (nvidia-* + triton) and exceed the 2 GB
+      # release-asset limit. Replace with the CPU build. An uninstall is required,
+      # otherwise pip sees torch==2.14.0 "already satisfied" and keeps the CUDA one.
       - name: Install CPU-only torch (Linux)
         if: runner.os == 'Linux'
-        run: pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/cpu
+        run: |
+          pip uninstall -y torch torchvision || true
+          NV="$(pip list --format freeze | grep -iE '^(nvidia|triton)[-_.]' | cut -d= -f1)"
+          if [ -n "$NV" ]; then pip uninstall -y $NV; fi
+          pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
