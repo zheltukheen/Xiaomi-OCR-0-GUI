@@ -33,6 +33,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
 
+      # Linux default wheels bundle CUDA and exceed the 2 GB release asset limit.
+      # Use the CPU build on Linux; on Apple MPS / NVIDIA the pip default is better
+      # for local installs (see README).
+      - name: Install CPU-only torch (Linux)
+        if: runner.os == 'Linux'
+        run: pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/cpu
+
       - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: cmd
