@@ -1,4 +1,4 @@
-"""Главное окно приложения Xiaomi OCR (English UI)."""
+"""Main window of the Xiaomi OCR app."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
 
         self._build_menu()
         self._build_ui()
-        # выставить сохранённые task/device как текущие значения (после _build_menu)
+        # apply the stored task/device as current values (after _build_menu)
         self.question_edit.setText(str(self.settings.get("question", "")))
         self.vqa_row.setVisible(self.current_task == VQA_TASK)
 
@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         self.welcome.setWordWrap(True)
         self.welcome.setAlignment(Qt.AlignTop)
 
-        # постоянная панель: Stop слева, вопрос — только в режиме VQA
+        # persistent toolbar: Stop on the left, question row only visible for VQA
         row = QWidget()
         form = QHBoxLayout(row)
         form.setContentsMargins(6, 2, 6, 2)
@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
         vqa_form.addWidget(q_label)
         vqa_form.addWidget(self.question_edit, 1)
         form.addWidget(self.vqa_row, 1)
-        self.vqa_row.setVisible(False)      # показывается только для VQA-задачи
+        self.vqa_row.setVisible(False)      # shown only for the VQA task
         root.addWidget(row)
 
         self.stack = QStackedWidget()

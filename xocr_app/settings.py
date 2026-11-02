@@ -1,4 +1,4 @@
-"""Сохранение настроек через QSettings."""
+"""Settings persistence via QSettings."""
 
 from PySide6.QtCore import QSettings
 

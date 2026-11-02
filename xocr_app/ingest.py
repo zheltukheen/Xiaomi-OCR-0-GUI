@@ -1,7 +1,7 @@
-"""Приём файлов: сведения их к страницам-изображениям (для OCR) или к тексту.
+"""File intake: reduce input to page images (for OCR) or to plain text.
 
-Пути: PDF и изображения отправляются на OCR; текстовые и офисные файлы
-после сохранения текст извлекаются напрямую (без OCR).
+PDFs and images go through OCR; office and plain-text files are converted
+to text directly (no OCR needed).
 """
 
 from __future__ import annotations
@@ -21,16 +21,16 @@ PDF_EXTS = {".pdf"}
 
 SUPPORTED_EXTS = IMAGE_EXTS | TEXT_EXTS | RTF_EXTS | DOCX_EXTS | PPTX_EXTS | ODT_EXTS | PDF_EXTS
 
-KIND_OCR = "ocr"      # страницы-картинки
-KIND_TEXT = "text"    # текст извлечён напрямую
+KIND_OCR = "ocr"      # page images
+KIND_TEXT = "text"    # text extracted directly
 
 
 @dataclass
 class IngestResult:
     path: str
     kind: str
-    pages: list[str] = field(default_factory=list)   # пути к картинкам страниц
-    texts: list[str] = field(default_factory=list)   # текст (для KIND_TEXT — одна запись)
+    pages: list[str] = field(default_factory=list)   # paths to page images
+    texts: list[str] = field(default_factory=list)   # text (KIND_TEXT: single entry)
     note: str = ""
 
     @property
@@ -49,7 +49,7 @@ class IngestError(RuntimeError):
 def _pdf_to_images(path: str, dpi: int, tmpdir: str) -> list[str]:
     try:
         import pymupdf as fitz
-    except ImportError:  # старые версии
+    except ImportError:  # older versions
         import fitz  # type: ignore
     base = os.path.splitext(os.path.basename(path))[0]
     zoom = dpi / 72.0
@@ -114,7 +114,7 @@ def _pptx_text(path: str) -> str:
     prs = Presentation(path)
     out = []
     for i, slide in enumerate(prs.slides, 1):
-        out.append(f"## Слайд {i}")
+        out.append(f"## Slide {i}")
         for shape in slide.shapes:
             if shape.has_text_frame:
                 for para in shape.text_frame.paragraphs:
@@ -154,13 +154,13 @@ def _plain_text(path: str) -> str:
 
 
 def ingest(path: str, dpi: int = 200, tmpdir: str | None = None) -> IngestResult:
-    """Преобразует файл к виду, пригодному для распознавания."""
+    """Reduce a file to a form suitable for recognition."""
     if not os.path.isfile(path):
-        raise IngestError(f"Файл не найден: {path}")
+        raise IngestError(f"File not found: {path}")
     ext = os.path.splitext(path)[1].lower()
     if ext not in SUPPORTED_EXTS:
         raise IngestError(
-            f"Неизвестный формат {ext or '(без расширения)'}. Поддерживаются: PDF, картинки, DOCX, PPTX, ODT, RTF и текстовые файлы."
+            f"Unknown format {ext or '(no extension)'}. Supported: PDF, images, DOCX, PPTX, ODT, RTF and text files."
         )
 
     cleanup_dir = None
@@ -171,7 +171,7 @@ def ingest(path: str, dpi: int = 200, tmpdir: str | None = None) -> IngestResult
     if is_pdf(path):
         pages = _pdf_to_images(path, dpi, tmpdir)
         if not pages:
-            raise IngestError("В PDF нет страниц")
+            raise IngestError("The PDF has no pages")
         return IngestResult(path=path, kind=KIND_OCR, pages=pages)
 
     if is_image(path):
@@ -191,10 +191,10 @@ def ingest(path: str, dpi: int = 200, tmpdir: str | None = None) -> IngestResult
     except IngestError:
         raise
     except Exception as e:
-        raise IngestError(f"Не удалось прочитать {os.path.basename(path)}: {e}")
+        raise IngestError(f"Could not read {os.path.basename(path)}: {e}")
 
     if not text:
-        raise IngestError(f"Файл пуст либо текст не извлечён: {os.path.basename(path)}")
+        raise IngestError(f"File is empty or no text was extracted: {os.path.basename(path)}")
 
     if cleanup_dir:
         try:
@@ -203,4 +203,4 @@ def ingest(path: str, dpi: int = 200, tmpdir: str | None = None) -> IngestResult
             pass
 
     return IngestResult(path=path, kind=KIND_TEXT, texts=[text],
-                        note="Текстовый файл: текст извлечён напрямую, OCR не требуется.")
+                        note="Text file: content extracted directly, OCR is not required.")

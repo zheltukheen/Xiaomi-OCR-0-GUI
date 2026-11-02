@@ -1,8 +1,8 @@
-"""Конвертация таблиц OTSL (выходной формат таблиц Xiaomi-OCR-0) в HTML.
+"""Convert OTSL tables (the Xiaomi-OCR-0 table output format) to HTML.
 
-OTSL (Optimized Table Structure Language) — разметка таблиц, которой модель
-отвечает для табличных областей. Здесь выполняется базовая конвертация в
-HTML-таблицу: ячейки, разделители строк, заголовки и merge-ячейки.
+OTSL (Optimized Table Structure Language) is the table markup the model
+emits for table regions. This module performs a basic conversion into an
+HTML table: cells, row separators, headers and merged cells.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def _escape(s: str) -> str:
 
 
 def otsl_to_html(otsl: str) -> str:
-    """Преобразует строку OTSL в HTML <table> (best-effort)."""
+    """Converts an OTSL string to an HTML <table> (best-effort)."""
     rows: list[list[dict]] = []
     cur_row: list[dict] = []
     cur_cell_text: list[str] = []
@@ -91,7 +91,7 @@ def otsl_to_html(otsl: str) -> str:
                 attrs.append(f'class="{cell["cls"]}"')
             markup = f'<{tag} {" ".join(attrs)}>' if attrs else f"<{tag}>"
             tds.append(markup + _escape(cell["text"]) + f"</{tag}>")
-        # дополним неполные строки пустыми ячейками для ровной сетки
+        # pad incomplete rows with empty cells for a regular grid
         filled = sum(c["colspan"] for c in row)
         if filled < width:
             tds.extend(['<td class="xt-merge-right"></td>'] * (width - filled))
@@ -111,7 +111,7 @@ def is_otsl_line(line: str) -> bool:
 
 
 def preprocess_markdown(md: str) -> str:
-    """Заменяет найденные OTSL-фрагменты в markdown на HTML-таблицы."""
+    """Replace OTSL fragments found in markdown with HTML tables."""
     lines = md.split("\n")
     out: list[str] = []
     i = 0

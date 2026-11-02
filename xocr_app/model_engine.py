@@ -1,9 +1,9 @@
-"""Загрузка и инференс модели Xiaomi-OCR-0.
+"""Model loading and inference for Xiaomi-OCR-0.
 
-Веса скачиваются один раз с официального репозитория
-https://huggingface.co/SeerRay-Lab/Xiaomi-OCR-0 (Apache-2.0) в стандартный
-кеш Hugging Face (~/.cache/huggingface). Приложение само по себе лёгкое —
-веса в него не встроены.
+Weights are downloaded once from the official repository
+https://huggingface.co/SeerRay-Lab/Xiaomi-OCR-0 (Apache-2.0) into the
+standard Hugging Face cache (~/.cache/huggingface). The app itself is
+lightweight — weights are not embedded.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ class ModelError(RuntimeError):
 
 
 def pick_device() -> tuple[str, str]:
-    """Возвращает (устройство, описание)."""
+    """Returns (device, description)."""
     import torch
 
     if torch.cuda.is_available():
@@ -43,7 +43,7 @@ def _dtype_for(device: str):
 
 
 class OcrEngine(QObject):
-    """Синглтон-движок: загружает модель в ленивом режиме и хранит её в памяти."""
+    """Singleton engine: loads the model lazily and keeps it in memory."""
 
     def __init__(self):
         super().__init__()
@@ -56,7 +56,7 @@ class OcrEngine(QObject):
         return self.model is not None
 
     def ensure_loaded(self, device: str = "auto") -> str:
-        """Загружает модель (если ещё не загружена). Возвращает фактическое устройство."""
+        """Loads the model if not loaded yet. Returns the actual device."""
         with _lock:
             if self.ready:
                 return self.device
@@ -80,14 +80,13 @@ class OcrEngine(QObject):
             self.device = resolved
             return resolved
 
-    def recognize_image(self, image_path: str, task: str = "Полный разбор документа",
+    def recognize_image(self, image_path: str, task: str = "Full document parsing",
                         question: str = "", max_new_tokens: int = 4096) -> str:
-        """Распознаёт одно изображение. Возвращает текст/Markdown.
-        Для VQA передайте вопрос через `question`."""
+        """Recognize one image; returns text/markdown. For VQA pass `question`."""
         import torch
 
         if not self.ready:
-            raise ModelError("Модель ещё не загружена")
+            raise ModelError("The model is not loaded yet")
 
         prompt = prompt_for_task(task, question)
         messages = [{
@@ -113,7 +112,7 @@ class OcrEngine(QObject):
             text = self.processor.batch_decode(new_tokens, skip_special_tokens=True)[0]
         text = text.strip()
         if not text:
-            raise ModelError("Модель вернула пустой ответ")
+            raise ModelError("The model returned an empty response")
         return text
 
 

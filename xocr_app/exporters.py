@@ -1,7 +1,7 @@
-"""Экспорт распознанного текста во все текстовые форматы.
+"""Export recognized text to the supported text formats.
 
-Единая точка: `export_text()` пишет результат в один или несколько форматов.
-Форматы: TXT, MD, RTF, HTML, DOCX, ODT, PDF, EPUB, JSON.
+Single entry point: `export_text()` writes the result to one or more formats.
+Formats: TXT, MD, RTF, HTML, DOCX, ODT, PDF, EPUB, JSON.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ EXPORT_FORMATS = ["txt", "md", "rtf", "html", "docx", "odt", "pdf", "epub", "jso
 
 @dataclass
 class OcrText:
-    """Распознанный документ: текст целиком + посранично."""
+    """Recognized document: full text plus per-page records."""
     source_path: str
     full_text: str
     pages: list[dict] = field(default_factory=list)  # [{index, image, text}]
@@ -44,9 +44,9 @@ H1_RE = re.compile(r"^#{1,6}\s*", re.M)
 
 
 def plain_from_markdown(md: str) -> str:
-    """Markdown -> простой текст (без разметки, LaTeX сохраняется)."""
+    """Markdown -> plain text (no markup, LaTeX preserved)."""
     text = otsl.preprocess_markdown(md)
-    # HTML-таблицы -> текстовые строки-ячейки
+    # HTML tables -> text rows/cells
     def table_to_text(m: re.Match) -> str:
         cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", m.group(0), re.S)
         if not cells:
@@ -155,7 +155,7 @@ def build_docx(md: str, path: str, monospace_font: str = "Courier New") -> None:
     import docx
     from docx.shared import Pt
 
-    doc = docx.Document()  # новый пустой документ
+    doc = docx.Document()  # new empty document
 
     def add_table(rows: list[list[str]]):
         if not rows:
@@ -316,7 +316,7 @@ def _find_unicode_font() -> str | None:
     for c in _UFONT_CANDIDATES:
         if os.path.isfile(c):
             return c
-    # общий поиск по /usr/share/fonts
+    # generic search under /usr/share/fonts
     if os.path.isdir("/usr/share/fonts"):
         for root, _dirs, files in os.walk("/usr/share/fonts"):
             for f in files:
@@ -348,7 +348,7 @@ def build_pdf(text: str, path: str, title: str = "") -> None:
         except Exception:
             bold = None
     else:
-        main = "helvetica"  # латиница; кириллица может отобразиться некорректно
+        main = "helvetica"  # Latin; Cyrillic may render incorrectly
         bold = "bold"
 
     def emit(line: str, size: float = 11, is_bold: bool = False):
@@ -395,7 +395,7 @@ def build_epub(md: str, path: str, title: str = "", author: str = "Xiaomi OCR") 
 
     book = epub.EpubBook()
     book.set_identifier("xiaomi-ocr-" + str(abs(hash(title)) % 10**10))
-    book.set_title(title or "Распознанный документ")
+    book.set_title(title or "Recognized document")
     book.set_language("ru")
     book.add_author(author)
 
@@ -419,7 +419,7 @@ def build_epub(md: str, path: str, title: str = "", author: str = "Xiaomi OCR") 
 # --------------------------------------------------------------- the API ----
 
 def export_text(text_obj: OcrText, out_dir: str, formats: list[str]) -> list[str]:
-    """Записывает результат в выбранные форматы. Возвращает список созданных файлов."""
+    """Writes the result to the selected formats. Returns the files created."""
     os.makedirs(out_dir, exist_ok=True)
     base = _safe_name(text_obj.base_name)
     title = text_obj.base_name
@@ -458,13 +458,13 @@ def export_text(text_obj: OcrText, out_dir: str, formats: list[str]) -> list[str
         except ModuleNotFoundError:
             raise
         except Exception as e:
-            # один неудавшийся формат не должен рушить весь экспорт
+            # one failing format must not abort the whole export
             written.append(f"! {os.path.basename(path)}: {e}")
     return written
 
 
 def _unique(path: str) -> str:
-    """Не перезаписывать: добавить суффикс _2, _3 … если файл уже существует."""
+    """Never overwrite: add a _2, _3 … suffix when the file already exists."""
     if not os.path.exists(path):
         return path
     base, ext = os.path.splitext(path)

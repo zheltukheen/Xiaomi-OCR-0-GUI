@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Точка входа приложения Xiaomi OCR.
+"""Application entry point for Xiaomi OCR.
 
-Проверяет зависимости и запускает графический интерфейс.
-Первый запуск скачивает модель Xiaomi-OCR-0 (~1.5 ГБ) с официального
-репозитория Hugging Face в стандартный кеш.
+Checks dependencies and launches the GUI.
+On first launch the Xiaomi-OCR-0 model (~1.5 GB) is downloaded once from
+the official Hugging Face repository into the standard cache.
 """
 
 import sys
@@ -13,7 +13,7 @@ MIN_PY = (3, 10)
 
 def check_python():
     if sys.version_info < MIN_PY:
-        print(f"Нужен Python {MIN_PY[0]}.{MIN_PY[1]}+ (у вас {sys.version.split()[0]}).")
+        print(f"Python {MIN_PY[0]}.{MIN_PY[1]}+ is required (found {sys.version.split()[0]}).")
         sys.exit(1)
 
 
@@ -25,9 +25,9 @@ def check_deps():
         except ImportError:
             missing.append(_name)
     if missing:
-        print("Не хватает зависимостей. Установите их и повторите запуск:\n")
+        print("Missing dependencies. Install them and run again:\n")
         print("    pip install -r requirements.txt\n")
-        print(f"(отсутствуют: {', '.join(missing)})")
+        print(f"(missing: {', '.join(missing)})")
         sys.exit(1)
 
 

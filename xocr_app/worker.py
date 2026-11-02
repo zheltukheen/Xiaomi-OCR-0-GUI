@@ -40,7 +40,7 @@ class RecognitionWorker(QThread):
     jobFinished = Signal(object, object) # FileItem, Job
     fileExported = Signal(str, list)     # path, written files
     jobFailed = Signal(str, str)         # path, message
-    queueCleared = Signal()              #ThreadPool очередь очищена
+    queueCleared = Signal()              # queue dropped after a full stop
 
     def __init__(self, parent=None):
         super().__init__(parent)

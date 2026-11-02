@@ -1,4 +1,4 @@
-"""HTML-рендер страницы результата."""
+"""HTML rendering of a result page."""
 
 import os
 

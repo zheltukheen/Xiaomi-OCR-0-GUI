@@ -1,4 +1,4 @@
-"""Состояние одного открытого файла."""
+"""State of one opened file."""
 
 from __future__ import annotations
 

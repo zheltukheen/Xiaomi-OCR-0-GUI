@@ -169,7 +169,7 @@ class DocumentView(QWidget):
         self.splitter.addWidget(right)
         self.splitter.setSizes([640, 640])
 
-        # центральный прогресс распознавания
+        # centered recognition progress overlay
         self.overlay = BusyOverlay(self)
 
         # -------------------------------------------------------- wiring ----
