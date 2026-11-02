@@ -1,20 +1,20 @@
-# GUI
-PySide6>=6.7
+# GUI (Essentials only — QtWidgets/QtGui/QtCore; keeps bundles ~3x smaller)
+PySide6-Essentials>=6.7
 
-# Xiaomi-OCR-0 (проверенная комбинация из официального README модели)
+# Xiaomi-OCR-0 (verified combo from the official model README)
 transformers==5.17.0
 torch==2.14.0
 torchvision==0.29.0
 pillow>=10.0
 
-# Файлы
-pymupdf>=1.24          # PDF -> картинки страниц
-python-docx>=1.1       # чтение и экспорт DOCX
-python-pptx>=0.6.23    # чтение PPTX
-odfpy>=1.4.1           # чтение/экспорт ODT
-striprtf>=0.0.26       # чтение RTF
+# Files
+pymupdf>=1.24          # PDF -> page images
+python-docx>=1.1       # DOCX reading and export
+python-pptx>=0.6.23    # PPTX reading
+odfpy>=1.4.1           # ODT reading/export
+striprtf>=0.0.26       # RTF reading
 
-# Экспорт
+# Export
 markdown>=3.5          # MD -> HTML
-fpdf2>=2.7             # экспорт PDF (текст)
-ebooklib>=0.18         # экспорт EPUB
+fpdf2>=2.7             # PDF export (text)
+ebooklib>=0.18         # EPUB export

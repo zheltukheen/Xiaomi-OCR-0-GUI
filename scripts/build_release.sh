@@ -42,9 +42,9 @@ else
     --collect-data transformers
 fi
 
-# Package into a zip for distribution
+# Package into a zip for distribution (macOS: only the .app bundle)
 if [ "$(uname -s)" = "Darwin" ]; then
-  (cd dist && zip -q -r "${NAME}-macos.zip" "${NAME}.app" "${NAME}" 2>/dev/null || zip -q -r "${NAME}-macos.zip" "${NAME}")
+  (cd dist && zip -q -r "${NAME}-macos.zip" "${NAME}.app")
 else
   (cd dist && zip -q -r "${NAME}-linux.zip" "${NAME}")
 fi

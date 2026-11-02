@@ -15,6 +15,8 @@ FORMULA_PROMPT = "Identify the formula in the image and represent it in LATEX fo
 
 VQA_HEADER = "Extract key information in the image"
 
+VQA_TASK = "Ask a question (VQA)"
+
 TASKS = [
     "Full document parsing",
     "Text only",

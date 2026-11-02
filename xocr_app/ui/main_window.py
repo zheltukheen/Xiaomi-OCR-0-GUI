@@ -16,7 +16,7 @@ from ..exporters import export_text
 from ..file_item import FileItem
 from ..ingest import IngestError, ingest
 from ..model_manager import MODEL_READY, ModelLoaderWorker
-from ..prompts import TASKS
+from ..prompts import TASKS, VQA_TASK
 from ..settings import AppSettings
 from ..worker import Job, RecognitionWorker
 from .dialogs import BatchOpenDialog, ExportDialog
@@ -49,6 +49,7 @@ class MainWindow(QMainWindow):
         self._build_ui()
         # выставить сохранённые task/device как текущие значения (после _build_menu)
         self.question_edit.setText(str(self.settings.get("question", "")))
+        self.vqa_row.setVisible(self.current_task == VQA_TASK)
 
         # worker signals
         self.worker.jobStarted.connect(self._on_job_started)
@@ -123,20 +124,29 @@ class MainWindow(QMainWindow):
         self.welcome.setWordWrap(True)
         self.welcome.setAlignment(Qt.AlignTop)
 
-        # постоянная панель: VQA-вопрос и Stop
+        # постоянная панель: Stop слева, вопрос — только в режиме VQA
         row = QWidget()
         form = QHBoxLayout(row)
         form.setContentsMargins(6, 2, 6, 2)
-        q_label = QLabel("VQA question:")
-        q_label.setToolTip("Used only when the task is “Ask a question (VQA)”")
-        self.question_edit = QLineEdit()
-        self.question_edit.setPlaceholderText("e.g. What is the total amount on the receipt?")
-        form.addWidget(q_label)
-        form.addWidget(self.question_edit, 1)
         self.stop_btn = QPushButton("Stop")
         self.stop_btn.setEnabled(False)
+        self.stop_btn.setToolTip("Stop recognition and clear the queue")
         self.stop_btn.clicked.connect(self._stop_all)
         form.addWidget(self.stop_btn)
+        form.addSpacing(12)
+        self.vqa_row = QWidget()
+        vqa_form = QHBoxLayout(self.vqa_row)
+        vqa_form.setContentsMargins(0, 0, 0, 0)
+        q_label = QLabel("VQA question:")
+        q_label.setToolTip("Used only when the task is “Ask a question (VQA)”")
+        q_label.setStyleSheet("color: #666;")
+        self.question_edit = QLineEdit()
+        self.question_edit.setPlaceholderText("e.g. What is the total amount on the receipt?")
+        self.question_edit.setToolTip("Set Settings → Recognition task → Ask a question (VQA) to use this")
+        vqa_form.addWidget(q_label)
+        vqa_form.addWidget(self.question_edit, 1)
+        form.addWidget(self.vqa_row, 1)
+        self.vqa_row.setVisible(False)      # показывается только для VQA-задачи
         root.addWidget(row)
 
         self.stack = QStackedWidget()
@@ -204,6 +214,8 @@ class MainWindow(QMainWindow):
     def _set_task(self, name: str):
         self.current_task = name
         self.settings.set("task", name)
+        self.vqa_row.setVisible(name == VQA_TASK)
+        self.statusBar().showMessage(f"Recognition task: {name}", 4000)
 
     def _set_device(self, name: str):
         self.current_device = name

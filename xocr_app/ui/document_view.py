@@ -1,22 +1,98 @@
 """Document view: one tab per opened file.
 
-Left pane — the original page image, right pane — the recognized text.
-Panning/scrolling either pane moves the other one too (synced comparison).
+Left pane — the original page image (mouse-drag panning), right pane — the
+recognized text. Panes scroll together for comparison, and a centered overlay
+shows per-page recognition progress.
 """
 
 from __future__ import annotations
 
 import os
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
-    QCheckBox, QFileDialog, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-    QSlider, QSplitter, QTextBrowser, QVBoxLayout, QWidget,
+    QCheckBox, QFileDialog, QHBoxLayout, QLabel, QPushButton, QProgressBar,
+    QScrollArea, QSlider, QSplitter, QTextBrowser, QVBoxLayout, QWidget,
 )
 
 from ..file_item import FileItem
 from .html_helpers import PAGE_EMPTY_HTML, page_to_html
+
+PROGRESS_STATES = ("Preparing pages…", "Preparing…", "")  # matched by prefix
+
+
+class PannableScrollArea(QScrollArea):
+    """QScrollArea with hand-style mouse-drag panning."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._panning = False
+        self._last_pos = QPoint()
+        self.viewport().setCursor(Qt.OpenHandCursor)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._panning = True
+            self._last_pos = event.position().toPoint()
+            self.viewport().setCursor(Qt.ClosedHandCursor)
+            self.viewport().grabMouse()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._panning:
+            pos = event.position().toPoint()
+            delta = pos - self._last_pos
+            self._last_pos = pos
+            for bar, d in ((self.horizontalScrollBar(), delta.x()),
+                           (self.verticalScrollBar(), delta.y())):
+                bar.setValue(bar.value() - d)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._panning:
+            self._panning = False
+            self.viewport().setCursor(Qt.OpenHandCursor)
+            self.viewport().releaseMouse()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
+class BusyOverlay(QWidget):
+    """Centered semi-transparent overlay with recognition progress."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+        self.setStyleSheet(
+            "QWidget{background-color:rgba(255,255,255,0.88);}"
+            "QLabel{background-color:rgba(255,255,255,0);font-size:15px;font-weight:600;}"
+        )
+        lay = QVBoxLayout(self)
+        lay.addStretch(1)
+        spinner_lay = QHBoxLayout()
+        spinner_lay.addStretch(1)
+        self.label = QLabel("Recognizing…")
+        bar = QProgressBar()
+        bar.setRange(0, 0)          # indeterminate
+        bar.setTextVisible(False)
+        bar.setFixedWidth(340)
+        bar.setFixedHeight(6)
+        self.bar = bar
+        spinner_lay.addWidget(self.label)
+        spinner_lay.addSpacing(14)
+        spinner_lay.addWidget(bar)
+        lay.addLayout(spinner_lay)
+        lay.addStretch(1)
+        self.hide()
+
+    def set_text(self, text: str):
+        self.label.setText(text or "Recognizing…" if text else "Recognizing…")
 
 
 def _clamp_scrollbar(sb, value: int):
@@ -29,7 +105,6 @@ def _clamp_scrollbar(sb, value: int):
 
 class DocumentView(QWidget):
     exportRequested = Signal(object)   # emits the FileItem
-    settingsRequested = Signal()
 
     def __init__(self, item: FileItem, parent=None):
         super().__init__(parent)
@@ -68,7 +143,7 @@ class DocumentView(QWidget):
         left = QWidget()
         ll = QVBoxLayout(left)
         ll.setContentsMargins(0, 0, 0, 0)
-        self.image_scroll = QScrollArea()
+        self.image_scroll = PannableScrollArea()
         self.image_scroll.setWidgetResizable(True)
         self.image_label = QLabel("Original")
         self.image_label.setAlignment(Qt.AlignCenter)
@@ -94,6 +169,9 @@ class DocumentView(QWidget):
         self.splitter.addWidget(right)
         self.splitter.setSizes([640, 640])
 
+        # центральный прогресс распознавания
+        self.overlay = BusyOverlay(self)
+
         # -------------------------------------------------------- wiring ----
         self.export_btn.clicked.connect(self._request_export)
         self.md_btn.toggled.connect(self._on_md_toggled)
@@ -102,10 +180,22 @@ class DocumentView(QWidget):
         self.image_scroll.verticalScrollBar().valueChanged.connect(self._sync_text)
         self.text_view.verticalScrollBar().valueChanged.connect(self._sync_image)
 
-    # -------------------------------------------------------------- state ----
+    # ---------------------------------------------------------------- state ----
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.overlay.setGeometry(self.rect())
 
     def set_state(self, text: str):
         self.status_label.setText(text)
+        busy = bool(text) and text not in ("Recognized.", "Stopped by user.") \
+            and not text.startswith("Error")
+        if busy:
+            self.overlay.set_text(text)
+            self.overlay.show()
+            self.overlay.raise_()
+        else:
+            self.overlay.hide()
         self.setWindowTitle(self.title_label.text())
 
     def set_ingested(self, page_count: int, kind: str):
@@ -130,9 +220,9 @@ class DocumentView(QWidget):
     def rebuild_from_result(self):
         if self.item.result is None:
             return
-        self.set_ingested(len(self.item.result.pages), "ocr")
+        self.set_ingested(len(self.item.result.pages), self.item.kind)
 
-    # ------------------------------------------------------------ display ----
+    # ------------------------------------------------------------- display ----
 
     def _current(self) -> int:
         return min(self.page_slider.value(), max(self.page_count - 1, 0))
@@ -170,7 +260,7 @@ class DocumentView(QWidget):
     def _request_export(self):
         self.exportRequested.emit(self.item)
 
-    # --------------------------------------------------------------- sync ----
+    # ---------------------------------------------------------------- sync ----
 
     def _sync_text(self, value):
         if not self.sync_cb.isChecked() or self._syncing:
