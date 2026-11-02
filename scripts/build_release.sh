@@ -36,6 +36,13 @@ else
   mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
   cp -r dist/"${NAME}" AppDir/usr/bin/
   chmod +x AppDir/usr/bin/"${NAME}"/"${NAME}"
+  cat > AppDir/AppRun <<EOF
+#!/bin/bash
+SELF="\$(readlink -f "\$0")"
+HERE="\${SELF%/*}"
+exec "\$HERE/usr/bin/${NAME}/${NAME}" "\$@"
+EOF
+  chmod a+rx AppDir/AppRun
   cp icons/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/xocr.png
   cp icons/icon.png AppDir/.DirIcon
   cp icons/icon.png AppDir/xocr.png
@@ -46,7 +53,7 @@ Name=${NAME}
 Comment=Offline OCR powered by Xiaomi-OCR-0
 Exec=${NAME}
 Icon=xocr
-Categories=Office;Utility;
+Categories=Office;
 Terminal=false
 EOF
   if command -v appimagetool >/dev/null 2>&1; then

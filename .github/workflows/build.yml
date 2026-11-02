@@ -89,6 +89,13 @@ jobs:
           mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
           cp -r dist/XiaomiOCR AppDir/usr/bin/
           chmod +x AppDir/usr/bin/XiaomiOCR/XiaomiOCR
+          cat > AppDir/AppRun <<'EOF'
+          #!/bin/bash
+          SELF="$(readlink -f "$0")"
+          HERE="${SELF%/*}"
+          exec "$HERE/usr/bin/XiaomiOCR/XiaomiOCR" "$@"
+          EOF
+          chmod a+rx AppDir/AppRun
           cp icons/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/xocr.png
           cp icons/icon.png AppDir/.DirIcon
           cp icons/icon.png AppDir/xocr.png
@@ -99,7 +106,7 @@ jobs:
           Comment=Offline OCR powered by Xiaomi-OCR-0
           Exec=XiaomiOCR
           Icon=xocr
-          Categories=Office;Utility;
+          Categories=Office;
           Terminal=false
           EOF
           curl -L -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
