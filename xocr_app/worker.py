@@ -16,7 +16,7 @@ from PySide6.QtCore import Signal, QThread
 from .exporters import OcrText, export_text
 from .ingest import IngestError, ingest
 from .model_engine import format_exception, get_engine
-from .model_manager import MODEL_READY
+from .model_manager import MODEL_FAILED, MODEL_READY
 
 
 class Job:
@@ -137,7 +137,13 @@ class RecognitionWorker(QThread):
         return texts
 
     def _recognize_one(self, image_path: str, job: Job, path: str, page_index: int) -> str:
-        MODEL_READY.wait()
+        while not (MODEL_READY.is_set() or MODEL_FAILED.is_set()
+                   or self._stop or self.isInterruptionRequested()):
+            time.sleep(0.2)
+        if MODEL_FAILED.is_set():
+            self.jobFailed.emit(path, "Model failed to load — recognition is not possible "
+                                      "(see Journal).")
+            return ""
         if self._stop or self.isInterruptionRequested():
             return ""
         try:

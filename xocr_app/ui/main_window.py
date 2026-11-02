@@ -122,27 +122,29 @@ class MainWindow(QMainWindow):
         )
         self.welcome.setWordWrap(True)
         self.welcome.setAlignment(Qt.AlignTop)
+
+        # постоянная панель: VQA-вопрос и Stop
+        row = QWidget()
+        form = QHBoxLayout(row)
+        form.setContentsMargins(6, 2, 6, 2)
+        q_label = QLabel("VQA question:")
+        q_label.setToolTip("Used only when the task is “Ask a question (VQA)”")
+        self.question_edit = QLineEdit()
+        self.question_edit.setPlaceholderText("e.g. What is the total amount on the receipt?")
+        form.addWidget(q_label)
+        form.addWidget(self.question_edit, 1)
+        self.stop_btn = QPushButton("Stop")
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.clicked.connect(self._stop_all)
+        form.addWidget(self.stop_btn)
+        root.addWidget(row)
+
         self.stack = QStackedWidget()
         self.stack.addWidget(self.welcome)          # index 0
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
         self.tabs.setMovable(False)
         self.stack.addWidget(self.tabs)             # index 1
-        if True:
-            row = QWidget()
-            form = QHBoxLayout(row)
-            q_label = QLabel("VQA question (for “Ask a question (VQA)” task):")
-            q_label.setToolTip("Used only when the task is “Ask a question (VQA)”")
-            self.question_edit = QLineEdit()
-            self.question_edit.setPlaceholderText("e.g. What is the total amount on the receipt?")
-            form.addWidget(q_label)
-            form.addWidget(self.question_edit, 1)
-            self.stop_btn = QPushButton("Stop")
-            self.stop_btn.setEnabled(False)
-            self.stop_btn.clicked.connect(self._stop_all)
-            form.addWidget(self.stop_btn)
-            self.stack.addWidget(row)               # index 2 – then hidden
-            row.hide()
         root.addWidget(self.stack, 1)
 
         self.model_status = QLabel("Model: starting…")

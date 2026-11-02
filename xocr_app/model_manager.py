@@ -20,6 +20,8 @@ from .model_engine import format_exception, get_engine
 
 # Set once the model is ready for recognition requests.
 MODEL_READY = threading.Event()
+# Set if loading failed — the worker stops submitting recognition work.
+MODEL_FAILED = threading.Event()
 
 
 def _fmt_size(n: float) -> str:
@@ -57,7 +59,7 @@ class ModelLoaderWorker(QThread):
         try:
             self._download_and_load()
         except Exception as e:
-            MODEL_READY.clear()
+            MODEL_FAILED.set()
             self.error.emit(format_exception(e) + "\n\n" + traceback.format_exc())
 
     def _download_and_load(self):
