@@ -39,6 +39,7 @@ jobs:
       # CUDA wheel, so the CUDA torch is uninstalled first.
       - name: Install CPU-only torch (Linux / Windows)
         if: runner.os != 'macOS'
+        shell: bash
         run: |
           pip uninstall -y torch torchvision || true
           NV="$(pip list --format freeze | grep -iE '^(nvidia|triton)[-_.]' | cut -d= -f1)"
